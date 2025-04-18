@@ -1,5 +1,5 @@
 
-from flask import Flask, request, send_file
+from flask import Flask, request, send_file, render_template
 import requests
 import pandas as pd
 import base64
@@ -79,46 +79,8 @@ def upload():
         output = os.path.join(app.config['UPLOAD_FOLDER'], 'kartvizitler.xlsx')
         df.to_excel(output, index=False)
         return send_file(output, as_attachment=True)
-    return '''
-        <!doctype html>
-        <html>
-        <head>
-            <title>Karttan Excel</title>
-            <style>
-                body { font-family: Arial; text-align: center; margin-top: 50px; }
-                h1 { color: #003e92; }
-                input[type=file] {
-                    padding: 10px;
-                    margin: 10px;
-                }
-                input[type=submit] {
-                    padding: 10px 20px;
-                    background: #003e92;
-                    color: white;
-                    border: none;
-                    cursor: pointer;
-                }
-                .container {
-                    border: 1px solid #ccc;
-                    padding: 30px;
-                    max-width: 600px;
-                    margin: auto;
-                    border-radius: 10px;
-                    background-color: #f5f5f5;
-                }
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <h1>Kartvizit Fotoğraflarını Yükle</h1>
-                <form method=post enctype=multipart/form-data>
-                    <input type=file name=files multiple><br>
-                    <input type=submit value="Excel'e Dönüştür">
-                </form>
-            </div>
-        </body>
-        </html>
-    '''
+    return render_template("index.html")
+
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
