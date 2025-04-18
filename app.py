@@ -1,10 +1,8 @@
 
 from flask import Flask, request, send_file
 import requests
-from PIL import Image
 import pandas as pd
 import base64
-import io
 import os
 
 app = Flask(__name__)
@@ -23,7 +21,7 @@ def extract_text_from_image(img_bytes):
     data = {
         "requests": [{
             "image": {"content": base64_image},
-            "features": [{"type": "TEXT_DETECTION"}]
+            "features": [{"type": "DOCUMENT_TEXT_DETECTION"}]
         }]
     }
     response = requests.post(url, headers=headers, json=data)
@@ -64,11 +62,8 @@ def upload():
         files = request.files.getlist('files')
         records = []
         for file in files:
-            img = Image.open(file.stream).convert('RGB')
-            buf = io.BytesIO()
-            img.save(buf, format='JPEG')
-            buf.seek(0)
-            text = extract_text_from_image(buf.read())
+            img_bytes = file.read()
+            text = extract_text_from_image(img_bytes)
             record = parse_info(text)
             records.append(record)
         df = pd.DataFrame(records)
@@ -84,7 +79,6 @@ def upload():
           <input type=submit value="Excel'e Dönüştür">
         </form>
     '''
-
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
