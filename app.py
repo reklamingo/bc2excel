@@ -30,8 +30,8 @@ def extract_text_from_image(img_bytes):
     result = response.json()
     try:
         return result['responses'][0]['fullTextAnnotation']['text']
-    except:
-        return "OCR başarısız oldu."
+    except KeyError:
+        return "OCR başarısız oldu. Kartvizit metni tespit edilemedi."
 
 def parse_info(text):
     lines = text.split('\n')
@@ -84,6 +84,7 @@ def upload():
           <input type=submit value="Excel'e Dönüştür">
         </form>
     '''
+
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
