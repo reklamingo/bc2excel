@@ -32,7 +32,7 @@ def extract_text_from_image(img_bytes):
         return "OCR başarısız oldu. Kartvizit metni tespit edilemedi."
 
 def parse_info(text):
-    lines = text.split('\n')
+    lines = [line.strip() for line in text.split('\n') if line.strip()]
     info = {
         "İsim": "",
         "Ünvan": "",
@@ -43,24 +43,24 @@ def parse_info(text):
         "Adres": ""
     }
 
-    for line in lines:
-        parts = [p.strip() for p in line.split("/") if p.strip()]
-        for part in parts:
-            lower = part.lower()
-            if '@' in part and info["E-posta"] == "":
-                info["E-posta"] = part
-            elif ('www' in part or '.com' in part) and info["Web"] == "":
-                info["Web"] = part
-            elif '+' in part and any(c.isdigit() for c in part):
-                info["Telefon"] += part + ' / '
-            elif any(keyword in lower for keyword in ["san", "tic", "a.ş", "ltd", "hold", "matbaa", "as", "a.s"]):
-                info["Şirket"] = part
-            elif info["İsim"] == "" and len(part.split()) <= 3:
-                info["İsim"] = part
-            elif info["Ünvan"] == "" and any(keyword in lower for keyword in ["müdür", "uzmanı", "yöneticisi", "analist", "tasarımcı", "sorumlu", "direktör", "koordinatör", "geliştirici", "danışman", "ceo"]):
-                info["Ünvan"] = part
-            else:
-                info["Adres"] += part + ' '
+    for i, line in enumerate(lines):
+        l = line.lower()
+        if i == 0:
+            info["İsim"] = line
+        elif i == 1:
+            info["Ünvan"] = line
+        elif '@' in line:
+            info["E-posta"] = line
+        elif 'www' in l or '.com' in l:
+            info["Web"] = line
+        elif '+' in line and any(c.isdigit() for c in line):
+            info["Telefon"] += line + " / "
+        elif any(word in l for word in ['san', 'tic', 'a.ş', 'ltd', 'hold', 'matbaa', 'a.s', 'company']):
+            info["Şirket"] = line
+        elif info["Şirket"] == "" and 2 <= i <= 5:
+            info["Şirket"] = line
+        else:
+            info["Adres"] += line + " "
     return info
 
 @app.route('/', methods=['GET', 'POST'])
@@ -79,12 +79,43 @@ def upload():
         return send_file(output, as_attachment=True)
     return '''
         <!doctype html>
-        <title>Karttan Excel (Google OCR)</title>
-        <h1>Kartvizit Fotoğraflarını Yükle</h1>
-        <form method=post enctype=multipart/form-data>
-          <input type=file name=files multiple>
-          <input type=submit value="Excel'e Dönüştür">
-        </form>
+        <html>
+        <head>
+            <title>Karttan Excel</title>
+            <style>
+                body { font-family: Arial; text-align: center; margin-top: 50px; }
+                h1 { color: #003e92; }
+                input[type=file] {
+                    padding: 10px;
+                    margin: 10px;
+                }
+                input[type=submit] {
+                    padding: 10px 20px;
+                    background: #003e92;
+                    color: white;
+                    border: none;
+                    cursor: pointer;
+                }
+                .container {
+                    border: 1px solid #ccc;
+                    padding: 30px;
+                    max-width: 600px;
+                    margin: auto;
+                    border-radius: 10px;
+                    background-color: #f5f5f5;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>Kartvizit Fotoğraflarını Yükle</h1>
+                <form method=post enctype=multipart/form-data>
+                    <input type=file name=files multiple><br>
+                    <input type=submit value="Excel'e Dönüştür">
+                </form>
+            </div>
+        </body>
+        </html>
     '''
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 10000))
