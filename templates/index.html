@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BC2Excel - Kartvizit Toplama</title>
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Quicksand', sans-serif;
+            background: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        .logo {
+            width: 220px;
+            margin-bottom: 20px;
+        }
+        .card {
+            background: #f8f8f8;
+            border: 1px solid #ddd;
+            border-radius: 12px;
+            padding: 30px;
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+        }
+        h1 {
+            color: #003e92;
+            margin-bottom: 20px;
+            font-size: 22px;
+        }
+        input[type="file"] {
+            padding: 10px;
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            width: 100%;
+            background: #fff;
+            margin-bottom: 20px;
+        }
+        input[type="submit"] {
+            padding: 12px 24px;
+            background-color: #3ecf00;
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        input[type="submit"]:hover {
+            background-color: #32b200;
+        }
+    </style>
+</head>
+<body>
+    <img src="/static/bc2.png" alt="BC2Excel Logo" class="logo">
+    <div class="card">
+        <h1>Kartvizit Fotoğraflarını Yükle</h1>
+        <form method="post" enctype="multipart/form-data">
+            <input type="file" name="files" multiple required><br>
+            <input type="submit" value="Excel'e Dönüştür">
+        </form>
+    </div>
+</body>
+</html>
