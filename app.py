@@ -35,6 +35,7 @@ def parse_info(text):
     lines = text.split('\n')
     info = {
         "İsim": "",
+        "Ünvan": "",
         "Telefon": "",
         "E-posta": "",
         "Web": "",
@@ -42,16 +43,19 @@ def parse_info(text):
         "Adres": ""
     }
     for line in lines:
+        lower = line.lower()
         if '@' in line:
             info["E-posta"] = line.strip()
         elif 'www' in line or '.com' in line:
             info["Web"] = line.strip()
         elif any(c.isdigit() for c in line) and '+' in line:
             info["Telefon"] += line.strip() + ' / '
-        elif any(keyword in line.lower() for keyword in ["san", "tic", "a.ş", "ltd", "hold", "matbaa"]):
+        elif any(keyword in lower for keyword in ["san", "tic", "a.ş", "ltd", "hold", "matbaa", "as", "a.s"]):
             info["Şirket"] = line.strip()
         elif info["İsim"] == "" and len(line.split()) <= 3:
             info["İsim"] = line.strip()
+        elif info["Ünvan"] == "" and any(keyword in lower for keyword in ["müdür", "uzmanı", "yöneticisi", "analist", "tasarımcı", "sorumlu", "direktör", "koordinatör", "geliştirici", "danışman"]):
+            info["Ünvan"] = line.strip()
         else:
             info["Adres"] += line.strip() + ' '
     return info
