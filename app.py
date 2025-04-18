@@ -49,7 +49,7 @@ def parse_info(text):
             info["İsim"] = line
         elif i == 1:
             info["Ünvan"] = line
-        elif '@' in line:
+        elif '@' in line and info["E-posta"] == "":
             info["E-posta"] = line
         elif 'www' in l or '.com' in l:
             info["Web"] = line
@@ -59,6 +59,8 @@ def parse_info(text):
             info["Şirket"] = line
         elif info["Şirket"] == "" and 2 <= i <= 5:
             info["Şirket"] = line
+        elif any(kelime in l for kelime in ['cad', 'sok', 'mah', 'bulvar', 'no', 'apt', 'istanbul', 'ankara', 'kat', 'bina', 'sk', 'sokak']):
+            info["Adres"] += line + " "
         else:
             info["Adres"] += line + " "
     return info
