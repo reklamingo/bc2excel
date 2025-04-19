@@ -17,10 +17,12 @@
             min-height: 100vh;
             padding: 40px 20px;
         }
+        .logo-wrapper {
+            text-align: center;
+        }
         .logo {
-            width: 320px;
-            max-width: 90%;
-            margin: 10px auto 30px;
+            max-height: 120px;
+            margin: 20px auto 30px;
             display: block;
         }
         .card {
@@ -61,7 +63,9 @@
     </style>
 </head>
 <body>
-    <img src="/static/bc2.png" alt="BC2Excel Logo" class="logo">
+    <div class="logo-wrapper">
+        <img src="/static/bc2.png" alt="BC2Excel Logo" class="logo">
+    </div>
     <div class="card">
         <h1>Kartvizit Fotoğraflarını Yükle</h1>
         <form method="post" enctype="multipart/form-data">
