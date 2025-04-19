@@ -22,19 +22,13 @@ def init_db():
         )
         """)
 
-@app.before_first_request
-def setup():
-    init_db()
-
 def get_user(email):
     with sqlite3.connect(DB_PATH) as conn:
-        result = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
-    return result
+        return conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
 
 def get_user_by_id(user_id):
     with sqlite3.connect(DB_PATH) as conn:
-        result = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
-    return result
+        return conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -79,7 +73,6 @@ def dashboard():
             return "Bir işlemde maksimum 100 görsel yükleyebilirsiniz."
         with sqlite3.connect(DB_PATH) as conn:
             conn.execute("UPDATE users SET credit = credit - 1 WHERE id = ?", (user[0],))
-        # OCR işlemleri burada yapılabilir
         return "Dosyalar başarıyla işlendi (simülasyon)."
     return render_template('dashboard.html', user_email=user[1], credit=user[3])
 
@@ -106,4 +99,5 @@ def add_credit(user_id):
     return redirect('/admin')
 
 if __name__ == '__main__':
+    init_db()
     app.run(debug=True)
