@@ -1,90 +1,109 @@
-
-from flask import Flask, request, send_file, render_template
-import requests
-import pandas as pd
-import base64
+from flask import Flask, render_template, request, redirect, session, url_for
+import sqlite3
 import os
 
 app = Flask(__name__)
+app.secret_key = 'bc2excel_secret'
+DB_PATH = 'users.db'
 UPLOAD_FOLDER = 'uploads'
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
-GOOGLE_VISION_API_KEY = "AIzaSyBhn6CJiR0fN_RvsPKoCuOL3m04IKtNbF0"
+def init_db():
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
+            credit INTEGER DEFAULT 5,
+            is_admin INTEGER DEFAULT 0
+        )
+        """)
 
-def extract_text_from_image(img_bytes):
-    base64_image = base64.b64encode(img_bytes).decode('utf-8')
-    url = f"https://vision.googleapis.com/v1/images:annotate?key={GOOGLE_VISION_API_KEY}"
-    headers = {"Content-Type": "application/json"}
-    data = {
-        "requests": [{
-            "image": {"content": base64_image},
-            "features": [{"type": "DOCUMENT_TEXT_DETECTION"}]
-        }]
-    }
-    response = requests.post(url, headers=headers, json=data)
-    result = response.json()
-    try:
-        return result['responses'][0]['fullTextAnnotation']['text']
-    except KeyError:
-        return "OCR başarısız oldu. Kartvizit metni tespit edilemedi."
+@app.before_first_request
+def setup():
+    init_db()
 
-def parse_info(text):
-    lines = [line.strip() for line in text.split('\n') if line.strip()]
-    info = {
-        "İsim": "",
-        "Ünvan": "",
-        "Telefon": "",
-        "E-posta": "",
-        "Web": "",
-        "Şirket": "",
-        "Adres": ""
-    }
+def get_user(email):
+    with sqlite3.connect(DB_PATH) as conn:
+        result = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
+    return result
 
-    for i, line in enumerate(lines):
-        l = line.lower()
-        if i == 0:
-            info["İsim"] = line
-        elif i == 1:
-            info["Ünvan"] = line
-        elif '@' in line and info["E-posta"] == "":
-            info["E-posta"] = line
-        elif 'www' in l or '.com' in l:
-            info["Web"] = line
-        elif '+' in line and any(c.isdigit() for c in line):
-            info["Telefon"] += line + " / "
-        elif any(word in l for word in ['san', 'tic', 'a.ş', 'ltd', 'hold', 'matbaa', 'a.s', 'company']):
-            info["Şirket"] = line
-        elif info["Şirket"] == "" and 2 <= i <= 5:
-            info["Şirket"] = line
-        elif any(kelime in l for kelime in ['cad', 'sok', 'mah', 'bulvar', 'no', 'apt', 'istanbul', 'ankara', 'kat', 'bina', 'sk', 'sokak']):
-            info["Adres"] += line + " "
-        else:
-            info["Adres"] += line + " "
-    return info
+def get_user_by_id(user_id):
+    with sqlite3.connect(DB_PATH) as conn:
+        result = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+    return result
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        email = request.form['email']
+        password = request.form['password']
+        try:
+            with sqlite3.connect(DB_PATH) as conn:
+                conn.execute("INSERT INTO users (email, password) VALUES (?, ?)", (email, password))
+            return redirect('/login')
+        except:
+            return "Bu e-posta zaten kayıtlı."
+    return render_template('register.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        email = request.form['email']
+        password = request.form['password']
+        user = get_user(email)
+        if user and user[2] == password:
+            session['user_id'] = user[0]
+            return redirect('/')
+        return "Giriş bilgileri hatalı"
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    session.pop('user_id', None)
+    return redirect('/login')
 
 @app.route('/', methods=['GET', 'POST'])
-def upload():
+def dashboard():
+    if 'user_id' not in session:
+        return redirect('/login')
+    user = get_user_by_id(session['user_id'])
     if request.method == 'POST':
+        if user[3] <= 0:
+            return "Krediniz tükendi. Lütfen paket satın alın."
         files = request.files.getlist('files')
-        records = []
-        for file in files:
-            img_bytes = file.read()
-            text = extract_text_from_image(img_bytes)
-            record = parse_info(text)
-            records.append(record)
-        df = pd.DataFrame(records)
-        output = os.path.join(app.config['UPLOAD_FOLDER'], 'kartvizitler.xlsx')
-        df.to_excel(output, index=False)
-        return send_file(output, as_attachment=True)
-    return render_template("index.html")
+        if len(files) > 100:
+            return "Bir işlemde maksimum 100 görsel yükleyebilirsiniz."
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.execute("UPDATE users SET credit = credit - 1 WHERE id = ?", (user[0],))
+        # OCR işlemleri burada yapılabilir
+        return "Dosyalar başarıyla işlendi (simülasyon)."
+    return render_template('dashboard.html', user_email=user[1], credit=user[3])
 
-@app.route('/landing')
-def landing():
-    return render_template("landing.html")
+@app.route('/admin')
+def admin_panel():
+    if 'user_id' not in session:
+        return redirect('/login')
+    user = get_user_by_id(session['user_id'])
+    if not user or user[4] == 0:
+        return "Erişim reddedildi"
+    with sqlite3.connect(DB_PATH) as conn:
+        users = conn.execute("SELECT * FROM users").fetchall()
+    return render_template('admin.html', users=users)
+
+@app.route('/admin/add_credit/<int:user_id>')
+def add_credit(user_id):
+    if 'user_id' not in session:
+        return redirect('/login')
+    admin = get_user_by_id(session['user_id'])
+    if not admin or admin[4] == 0:
+        return "Yetkiniz yok"
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute("UPDATE users SET credit = credit + 50 WHERE id = ?", (user_id,))
+    return redirect('/admin')
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(debug=True)
