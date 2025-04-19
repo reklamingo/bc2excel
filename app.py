@@ -81,6 +81,10 @@ def upload():
         return send_file(output, as_attachment=True)
     return render_template("index.html")
 
+@app.route('/landing')
+def landing():
+    return render_template("landing.html")
+
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
